@@ -187,7 +187,7 @@ public class ParkiranMallGUI {
             }
             slotTersedia = TOTAL_SLOT - dataParkir.size();
         } catch (IOException e) {
-            // File mungkin belum ada, abaikan
+           
         }
     }
 }

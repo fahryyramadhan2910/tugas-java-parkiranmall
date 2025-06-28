@@ -1,5 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
+import java.io.*;
 import java.text.DecimalFormat;
 import java.util.*;
 
@@ -9,6 +10,7 @@ public class ParkiranMallGUI {
     private static int slotTersedia = TOTAL_SLOT;
     private static final Map<String, Kendaraan> dataParkir = new LinkedHashMap<>();
     private static final DecimalFormat formatUang = new DecimalFormat("Rp#,###");
+    private static final String FILE_PATH = "data_parkir.txt";
 
     static class Kendaraan {
         String tipe;
@@ -18,9 +20,20 @@ public class ParkiranMallGUI {
             this.tipe = tipe;
             this.jamMasuk = jamMasuk;
         }
+
+        @Override
+        public String toString() {
+            return tipe + ";" + jamMasuk;
+        }
+
+        public static Kendaraan fromString(String data) {
+            String[] parts = data.split(";");
+            return new Kendaraan(parts[0], Integer.parseInt(parts[1]));
+        }
     }
 
     public static void main(String[] args) {
+        bacaDataDariFile();
         SwingUtilities.invokeLater(ParkiranMallGUI::buatGUI);
     }
 
@@ -38,7 +51,10 @@ public class ParkiranMallGUI {
         masukBtn.addActionListener(e -> kendaraanMasuk());
         keluarBtn.addActionListener(e -> kendaraanKeluar());
         cekParkiranBtn.addActionListener(e -> tampilkanParkiran());
-        keluarProgramBtn.addActionListener(e -> System.exit(0));
+        keluarProgramBtn.addActionListener(e -> {
+            simpanDataKeFile();
+            System.exit(0);
+        });
 
         JPanel panel = new JPanel(new GridLayout(4, 1, 10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
@@ -83,6 +99,7 @@ public class ParkiranMallGUI {
 
         dataParkir.put(plat, new Kendaraan(tipe, jamMasuk));
         slotTersedia--;
+        simpanDataKeFile();
 
         JOptionPane.showMessageDialog(null,
                 tipe.toUpperCase() + " " + plat + " berhasil masuk.\nSlot tersisa: " + slotTersedia);
@@ -126,6 +143,7 @@ public class ParkiranMallGUI {
         JOptionPane.showMessageDialog(null, struk);
         dataParkir.remove(plat);
         slotTersedia++;
+        simpanDataKeFile();
     }
 
     private static void tampilkanParkiran() {
@@ -146,5 +164,30 @@ public class ParkiranMallGUI {
         }
 
         JOptionPane.showMessageDialog(null, sb.toString());
+    }
+
+    private static void simpanDataKeFile() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(FILE_PATH))) {
+            for (Map.Entry<String, Kendaraan> entry : dataParkir.entrySet()) {
+                writer.println(entry.getKey() + "=" + entry.getValue().toString());
+            }
+        } catch (IOException e) {
+            System.err.println("❌ Gagal menyimpan data ke file.");
+        }
+    }
+
+    private static void bacaDataDariFile() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_PATH))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("=");
+                if (parts.length == 2) {
+                    dataParkir.put(parts[0], Kendaraan.fromString(parts[1]));
+                }
+            }
+            slotTersedia = TOTAL_SLOT - dataParkir.size();
+        } catch (IOException e) {
+            // File mungkin belum ada, abaikan
+        }
     }
 }
